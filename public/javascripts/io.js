@@ -131,11 +131,12 @@ io.of('/test').on('connection', function (socket) {
       let n=0
       turning[obj.roomId].turning = obj.orders[0]; 
       turning[obj.roomId].lastTurning = obj.orders[0]; 
-      orders[obj.roomId].orders=obj.orders
+      orders[obj.roomId].orders=obj.orders;
       goals[obj.roomId][0] = goals[obj.roomId][2] = 3;
       goals[obj.roomId][1] = goals[obj.roomId][3] = 3;
-      for (let key in _room) {
-        let _socket=_room[key];
+      for (let key of obj.orders) {
+        console.log(key,_room)
+        let _socket = _room[key];
         _socket.emit('dealCards',{num:n,cards:arrays[n],orders:obj.orders,turning:turning[obj.roomId].turning,lastTurning:turning[obj.roomId].lastTurning})
         _socket.cards = arrays[n];
         n++
@@ -143,7 +144,7 @@ io.of('/test').on('connection', function (socket) {
     }
 
   })
-  let _array=[1,2,3,4]
+ // let _array=[1,2,3,4]
   socket.on('play',(obj)=>{
     console.log(turning[obj.roomId].n)
     if(obj.finished){
@@ -152,15 +153,22 @@ io.of('/test').on('connection', function (socket) {
     if(finished[obj.roomId].length == 2){
       console.log(Math.abs(finished[obj.roomId][0] - finished[obj.roomId][1]) == 2);
       if(Math.abs(finished[obj.roomId][0] - finished[obj.roomId][1]) == 2){
-        goals[obj.roomId][finished[obj.roomId][0]]=goals[obj.roomId][finished[obj.roomId][2]]+=3;
-        io.of('test').to(obj.roomId).emit('end',{current:goals[obj.roomId][finished[obj.roomId][0]]});
+        goals[obj.roomId][finished[obj.roomId][0]] = goals[obj.roomId][finished[obj.roomId][2]]+=3;
+        let _n = (finished[obj.roomId][0]+1)%4;
+        let _n1 = (finished[obj.roomId][0]+3)%4;
+        let needTogong1=orders[obj.roomId].order[_n]
+        let needTogong2=orders[obj.roomId].order[_n1]
+        io.of('test').to(obj.roomId).emit('end',{current:goals[obj.roomId][finished[obj.roomId][0]],gong:[needTogong1,needTogong2]});
+        finished[obj.roomId]=[]
         return;
       }
     }
     if(finished[obj.roomId].length == 3){
       if(Math.abs(finished[obj.roomId][0] - finished[obj.roomId][1]) == 2){
+        let needTogong = orders[obj.roomId].find(ele=>! finished[obj.roomId].includes(ele))
         goals[obj.roomId][finished[obj.roomId][0]]=goals[obj.roomId][finished[obj.roomId][2]]+=1;
-        io.of('test').to(obj.roomId).emit('end',{current:goals[obj.roomId][finished[obj.roomId][0]]});
+        io.of('test').to(obj.roomId).emit('end',{current:goals[obj.roomId][finished[obj.roomId][0]],gong:[needTogong]});
+        finished[obj.roomId]=[]
         return;
       }
     }
@@ -195,17 +203,14 @@ io.of('/test').on('connection', function (socket) {
     io.of('test').to(obj.roomId).emit('playedcards',{cards:{},lastTurning:orders[obj.roomId].orders[n],turning:orders[obj.roomId].orders[n]});
   //  _socket.emit('playedcards',{cards:{},lastTurning:orders[obj.roomId][n],turning:orders[obj.roomId][n]});
   })
-  socket.on('next',()=>{
+  socket.on('next',(obj)=>{
     shuffleCards(doubleCardsPool);
     let arrays = dealCards(doubleCardsPool);
     if(_rooms[obj.roomId]){
       let _room=_rooms[obj.roomId];
       let n=0
-      turning[obj.roomId].turning = obj.orders[0]; 
-      turning[obj.roomId].lastTurning = obj.orders[0]; 
-      orders[obj.roomId].orders=obj.orders
-      goals[obj.roomId][0] = goals[obj.roomId][2] = 3;
-      goals[obj.roomId][1] = goals[obj.roomId][3] = 3;
+      turning[obj.roomId].turning =undefined; 
+      turning[obj.roomId].lastTurning = undefined; 
       for (let key in _room) {
         let _socket=_room[key];
         _socket.emit('dealCards',{num:n,cards:arrays[n],turning:undefined,lastTurning:undefined})
